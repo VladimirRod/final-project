@@ -1,0 +1,75 @@
+---
+ - hosts: centos
+   become: yes
+   tasks:
+    - name: Replace Filebeat input
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^  enabled'
+        line: '  enabled: true'
+
+    - name: Add path to Filebeat
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        insertafter: '^  paths:'
+        line: '    - /var/log/secure'
+
+    - name: Add second path to Filebeat
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        insertafter: '^  paths:'
+        line: '    - /var/log/message'
+
+    - name: Comment output in Filebeat
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^output.elasticsearch:'
+        line: '#output.elasticsearch:'
+
+    - name: Comment second output in Filebeat
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^  hosts: \["localhost:9200"\]'
+        line: '  #hosts: ["localhost:9200"]'
+
+    - name: Add output to Logstash
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^#output.logstash:'
+        line: 'output.logstash:'
+
+    - name: Add hosts in Filebeat
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^  #hosts: \["localhost:5044"\]'
+        line: '   hosts: ["10.0.0.6:5044"]'
+
+    - name: Add template in Filebeat output
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        insertafter: '^   hosts: \["localhost:5044"\]'
+        line: '   template.name: "filebeat"'
+
+    - name: Add template settings in Filebeat output
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        insertafter: '^   template.name: "filebeat"'
+        line: '   template.path: "filebeat.template.json"'
+
+    - name: Add template settings in Filebeat output
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        insertafter: '^   template.path: "filebeat.template.json"'
+        line: '   template.overwrite: false'  
+
+    - name: startup_elk
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true  
+      with_items:
+        - elasticsearch.service
+        - kibana.service
+        - filebeat.service
+        - logstash.service
+             
